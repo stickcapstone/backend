@@ -68,10 +68,20 @@ public class AnalysisService {
         // 2. Claude API 분석
         ClaudeAnalysisResult result = claudeApiClient.analyze(content, url);
 
-        // 3. 총점 계산 및 등급 결정
-        int totalScore = result.scores().values().stream()
-                .mapToInt(ClaudeAnalysisResult.ScoreItem::score)
-                .sum();
+        // 3. 카테고리별 점수 수집 및 가중 합산으로 총점 계산
+        // 총점 = Σ(항목 점수(0~100) × 가중치%) / 100
+        int totalScore = 0;
+        record ScoreEntry(int rawScore, String reason) {}
+        java.util.Map<ScoreCategory, ScoreEntry> entries = new java.util.EnumMap<>(ScoreCategory.class);
+
+        for (ScoreCategory category : ScoreCategory.values()) {
+            ClaudeAnalysisResult.ScoreItem item = result.scores() != null
+                    ? result.scores().get(category.name()) : null;
+            int rawScore = (item != null) ? Math.min(Math.max(item.score(), 0), 100) : 0;
+            String reason = (item != null && item.reason() != null) ? item.reason() : "분석 불가";
+            entries.put(category, new ScoreEntry(rawScore, reason));
+            totalScore += rawScore * category.getWeight() / 100;
+        }
 
         // 4. Analysis 엔티티 구성
         Analysis analysis = Analysis.builder()
@@ -83,15 +93,15 @@ public class AnalysisService {
                 .build();
 
         // 5. 카테고리별 점수 추가
-        result.scores().forEach((categoryName, item) -> {
-            AnalysisScore score = AnalysisScore.builder()
+        for (ScoreCategory category : ScoreCategory.values()) {
+            ScoreEntry entry = entries.get(category);
+            analysis.getScores().add(AnalysisScore.builder()
                     .analysis(analysis)
-                    .category(ScoreCategory.valueOf(categoryName))
-                    .score(item.score())
-                    .reason(item.reason())
-                    .build();
-            analysis.getScores().add(score);
-        });
+                    .category(category)
+                    .score(entry.rawScore())
+                    .reason(entry.reason())
+                    .build());
+        }
 
         // 6. NewsAPI 추천 기사 추가 (실패해도 분석 결과는 저장)
         List<NewsArticle> newsArticles = newsApiClient.searchRelatedArticles(content.title(), content.domain());

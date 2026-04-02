@@ -14,5 +14,5 @@ public enum ScoreCategory {
     ACADEMIC(15),
     GOV(10);
 
-    private final int maxScore;
+    private final int weight; // 전체 100점 중 해당 항목의 가중치(%)
 }

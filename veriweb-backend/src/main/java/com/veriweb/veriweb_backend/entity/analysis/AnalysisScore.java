@@ -38,7 +38,7 @@ public class AnalysisScore {
         this.analysis = analysis;
         this.category = category;
         this.score = score;
-        this.maxScore = category.getMaxScore();
+        this.maxScore = 100; // Claude는 항상 0~100으로 평가
         this.reason = reason;
     }
 }

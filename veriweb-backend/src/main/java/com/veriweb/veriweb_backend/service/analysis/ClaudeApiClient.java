@@ -17,7 +17,7 @@ import java.util.Map;
 
 @Slf4j
 @Component
-public class ClaudeApiClient {
+public class  ClaudeApiClient {
 
     private final RestClient restClient;
     private final ObjectMapper objectMapper;
@@ -43,7 +43,6 @@ public class ClaudeApiClient {
                 "max_tokens", 2048,
                 "messages", List.of(Map.of("role", "user", "content", prompt))
         );
-
         try {
             String responseBody = restClient.post()
                     .uri("/v1/messages")
@@ -90,24 +89,26 @@ public class ClaudeApiClient {
                   "summary": "한국어로 3~4문장으로 신뢰도 평가 요약",
                   "published_at": "기사 게시일 ISO 8601 형식, 불명확하면 null",
                   "scores": {
-                    "DOMAIN": {"score": <0~15 정수>, "reason": "<한국어 평가 이유>"},
-                    "AUTHOR": {"score": <0~10 정수>, "reason": "<한국어 평가 이유>"},
-                    "REFERENCE": {"score": <0~15 정수>, "reason": "<한국어 평가 이유>"},
-                    "CONSISTENCY": {"score": <0~20 정수>, "reason": "<한국어 평가 이유>"},
-                    "MANIPULATION": {"score": <0~15 정수>, "reason": "<한국어 평가 이유>"},
-                    "ACADEMIC": {"score": <0~15 정수>, "reason": "<한국어 평가 이유>"},
-                    "GOV": {"score": <0~10 정수>, "reason": "<한국어 평가 이유>"}
+                    "DOMAIN": {"score": <0~100 정수>, "reason": "<한국어 평가 이유>"},
+                    "AUTHOR": {"score": <0~100 정수>, "reason": "<한국어 평가 이유>"},
+                    "REFERENCE": {"score": <0~100 정수>, "reason": "<한국어 평가 이유>"},
+                    "CONSISTENCY": {"score": <0~100 정수>, "reason": "<한국어 평가 이유>"},
+                    "MANIPULATION": {"score": <0~100 정수>, "reason": "<한국어 평가 이유>"},
+                    "ACADEMIC": {"score": <0~100 정수>, "reason": "<한국어 평가 이유>"},
+                    "GOV": {"score": <0~100 정수>, "reason": "<한국어 평가 이유>"}
                   }
                 }
 
+                각 항목은 독립적으로 0~100점으로 평가하세요. 최종 가중 합산은 서버에서 처리합니다.
+
                 평가 기준:
-                - DOMAIN(0~15): 도메인 신뢰도 - 알려진 주요 언론사, .gov/.edu/.ac.kr 등 공신력 있는 도메인일수록 높게
-                - AUTHOR(0~10): 작성자/출처 명확성 - 실명, 소속, 기자 정보가 명확할수록 높게
-                - REFERENCE(0~15): 근거/인용 충실도 - 외부 링크, 출처 명시, 인용이 많을수록 높게
-                - CONSISTENCY(0~20): 정보 일관성 - 제목·본문 일치, 사실 오류 없음, 내부 모순 없을수록 높게
-                - MANIPULATION(0~15): 조작/품질 이상 없음 - 클릭베이트·감정조작·과장 등이 없을수록 높게 (조작 없으면 15, 심각한 조작이면 0)
-                - ACADEMIC(0~15): 학술 저널/연구 인용 여부 - 논문, 연구 결과 인용이 많을수록 높게
-                - GOV(0~10): 정부/공공기관 자료 인용 - 정부 발표, 공공기관 통계 인용이 있을수록 높게
+                - DOMAIN(0~100): 도메인 신뢰도 - 알려진 주요 언론사, .gov/.edu/.ac.kr 등 공신력 있는 도메인일수록 높게
+                - AUTHOR(0~100): 작성자/출처 명확성 - 실명, 소속, 기자 정보가 명확할수록 높게
+                - REFERENCE(0~100): 근거/인용 충실도 - 외부 링크, 출처 명시, 인용이 많을수록 높게
+                - CONSISTENCY(0~100): 정보 일관성 - 제목·본문 일치, 사실 오류 없음, 내부 모순 없을수록 높게
+                - MANIPULATION(0~100): 조작/품질 이상 없음 - 조작·클릭베이트·감정조작·과장이 없을수록 높게 (조작 없으면 100, 심각한 조작이면 0)
+                - ACADEMIC(0~100): 학술 저널/연구 인용 여부 - 논문, 연구 결과 인용이 많을수록 높게
+                - GOV(0~100): 정부/공공기관 자료 인용 - 정부 발표, 공공기관 통계 인용이 있을수록 높게
                 """.formatted(
                 url,
                 content.domain(),

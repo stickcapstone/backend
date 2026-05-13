@@ -8,4 +8,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface FeedArticleRepository extends JpaRepository<FeedArticle, Long> {
     Page<FeedArticle> findByCategory(ArticleCategory category, Pageable pageable);
+    boolean existsByUrl(String url);
 }

@@ -2,10 +2,18 @@ spring:
   application:
     name: veriweb-backend
 
+  config:
+    import: optional:classpath:application-local.yaml
+
+  servlet:
+    multipart:
+      max-file-size: 200MB
+      max-request-size: 200MB
+
   datasource:
-    url: jdbc:mysql://mysql-94133f3-ccapstonee.b.aivencloud.com:27160/defaultdb?useSSL=true&requireSSL=true&serverTimezone=Asia/Seoul
-    username: avnadmin
-    password: AVNS_WdOzgavAFKab5c8Z8E5
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
     driver-class-name: com.mysql.cj.jdbc.Driver
 
   jpa:
@@ -25,10 +33,12 @@ server:
 
 veriweb:
   claude:
-    api-key: ${CLAUDE_API_KEY}
+    api-key: ${CLAUDE_API_KEY:}
     model: claude-sonnet-4-6
   newsapi:
-    api-key: ${NEWSAPI_KEY}
+    api-key: ${NEWSAPI_KEY:}
+  hive:
+    api-key: ${HIVE_API_KEY:}
 
 springdoc:
   swagger-ui:

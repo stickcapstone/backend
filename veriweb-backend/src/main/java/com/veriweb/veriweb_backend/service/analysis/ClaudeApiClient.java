@@ -120,6 +120,90 @@ public class  ClaudeApiClient {
         );
     }
 
+    public String explainImageAnalysis(byte[] imageBytes, String mimeType, boolean aiGenerated, double confidencePct) {
+        String prompt = """
+                이 이미지는 AI 생성물 탐지 시스템에 의해 분석되었습니다.
+                탐지 결과: %s (신뢰도: %.1f%%)
+
+                위 탐지 결과를 바탕으로, 이 이미지의 특징을 관찰하여 AI 생성 여부 판단 근거를 한국어로 2~3문장으로 설명해주세요.
+                결론 판단 없이 근거 설명만 작성하세요.
+                """.formatted(aiGenerated ? "AI 생성" : "실제 이미지", confidencePct);
+
+        List<Object> contentList = List.of(
+                java.util.Map.of(
+                        "type", "image",
+                        "source", java.util.Map.of(
+                                "type", "base64",
+                                "media_type", mimeType,
+                                "data", java.util.Base64.getEncoder().encodeToString(imageBytes)
+                        )
+                ),
+                java.util.Map.of("type", "text", "text", prompt)
+        );
+
+        Map<String, Object> requestBody = Map.of(
+                "model", model,
+                "max_tokens", 512,
+                "messages", List.of(Map.of("role", "user", "content", contentList))
+        );
+
+        try {
+            String responseBody = restClient.post()
+                    .uri("/v1/messages")
+                    .header("x-api-key", apiKey)
+                    .header("anthropic-version", "2023-06-01")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(requestBody)
+                    .retrieve()
+                    .body(String.class);
+
+            JsonNode root = objectMapper.readTree(responseBody);
+            return root.path("content").get(0).path("text").asText();
+        } catch (Exception e) {
+            log.warn("Claude 이미지 설명 생성 실패: {}", e.getMessage());
+            return aiGenerated
+                    ? "AI 생성 패턴이 탐지되었습니다. 세부 근거 분석에 실패했습니다."
+                    : "실제 이미지 특성이 확인되었습니다. 세부 근거 분석에 실패했습니다.";
+        }
+    }
+
+    public String explainVideoAnalysis(int totalFrames, int aiFrames, double confidencePct, boolean aiGenerated) {
+        String prompt = """
+                영상 AI 생성물 탐지 결과를 분석해주세요.
+                - 전체 분석 프레임 수: %d
+                - AI 생성으로 감지된 프레임 수: %d
+                - 전체 AI 감지 신뢰도: %.1f%%
+                - 최종 판정: %s
+
+                위 통계를 바탕으로 AI 생성 여부 판단 근거를 한국어로 2~3문장으로 설명해주세요.
+                결론 판단 없이 근거 설명만 작성하세요.
+                """.formatted(totalFrames, aiFrames, confidencePct, aiGenerated ? "AI 생성 영상" : "실제 영상");
+
+        Map<String, Object> requestBody = Map.of(
+                "model", model,
+                "max_tokens", 512,
+                "messages", List.of(Map.of("role", "user", "content", prompt))
+        );
+
+        try {
+            String responseBody = restClient.post()
+                    .uri("/v1/messages")
+                    .header("x-api-key", apiKey)
+                    .header("anthropic-version", "2023-06-01")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(requestBody)
+                    .retrieve()
+                    .body(String.class);
+
+            JsonNode root = objectMapper.readTree(responseBody);
+            return root.path("content").get(0).path("text").asText();
+        } catch (Exception e) {
+            log.warn("Claude 영상 설명 생성 실패: {}", e.getMessage());
+            return String.format("전체 %d 프레임 중 %d 프레임에서 AI 생성 패턴이 감지되었습니다.",
+                    totalFrames, aiFrames);
+        }
+    }
+
     private String extractJson(String text) {
         int start = text.indexOf('{');
         int end = text.lastIndexOf('}');

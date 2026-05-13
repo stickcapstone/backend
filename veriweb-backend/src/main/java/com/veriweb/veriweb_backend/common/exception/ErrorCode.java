@@ -19,6 +19,12 @@ public enum ErrorCode {
     ARTICLE_NOT_FOUND(HttpStatus.NOT_FOUND, "기사를 찾을 수 없습니다."),
     INVALID_CATEGORY(HttpStatus.BAD_REQUEST, "유효하지 않은 카테고리입니다."),
 
+    // Media
+    MEDIA_FILE_REQUIRED(HttpStatus.BAD_REQUEST, "파일을 첨부해주세요."),
+    UNSUPPORTED_FILE_TYPE(HttpStatus.BAD_REQUEST, "지원하지 않는 파일 형식입니다."),
+    MEDIA_ANALYSIS_FAILED(HttpStatus.UNPROCESSABLE_ENTITY, "미디어 분석에 실패했습니다."),
+    HIVE_API_KEY_MISSING(HttpStatus.INTERNAL_SERVER_ERROR, "Hive API 키가 설정되지 않았습니다."),
+
     // Common
     INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "서버 내부 오류가 발생했습니다.");
 

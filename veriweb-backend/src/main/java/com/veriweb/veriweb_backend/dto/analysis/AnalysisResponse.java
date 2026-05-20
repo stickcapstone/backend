@@ -15,6 +15,7 @@ public class AnalysisResponse {
     private final String url;
     private final int totalScore;
     private final String grade;
+    private final String contentCategory;
     private final String summary;
     private final List<BreakdownItem> breakdown;
     private final List<ArticleItem> recommendedArticles;
@@ -29,6 +30,7 @@ public class AnalysisResponse {
         this.url = analysis.getUrl();
         this.totalScore = analysis.getTotalScore();
         this.grade = analysis.getGrade().name();
+        this.contentCategory = analysis.getContentCategory();
         this.summary = analysis.getSummary();
         this.breakdown = analysis.getScores().stream()
                 .map(BreakdownItem::from)

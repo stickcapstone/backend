@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.Map;
 
 public record ClaudeAnalysisResult(
+        String category,
         String summary,
         @JsonProperty("published_at") String publishedAt,
         Map<String, ScoreItem> scores

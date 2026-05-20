@@ -86,6 +86,7 @@ public class  ClaudeApiClient {
 
                 다음 JSON 구조를 정확히 반환하세요:
                 {
+                  "category": "<아래 목록 중 정확히 하나>",
                   "summary": "한국어로 3~4문장으로 신뢰도 평가 요약",
                   "published_at": "기사 게시일 ISO 8601 형식, 불명확하면 null",
                   "scores": {
@@ -99,7 +100,17 @@ public class  ClaudeApiClient {
                   }
                 }
 
-                각 항목은 독립적으로 0~100점으로 평가하세요. 최종 가중 합산은 서버에서 처리합니다.
+                category 선택 목록 (반드시 아래 영문 코드 중 하나만):
+                NEWS(뉴스/언론), TECH_BLOG(개발/기술 블로그), ACADEMIC_PAPER(학술 논문/리포트),
+                GOVERNMENT(정부/공공기관), COMMUNITY(커뮤니티/포럼), SNS(SNS/개인 미디어),
+                HEALTH(의료/건강), LEGAL(법률/법령), FINANCE(금융/경제), EDUCATION(교육/학습),
+                WIKI(위키/백과사전), FACTCHECK(팩트체크 전문), STATISTICS(통계/데이터 리포트),
+                NEWSLETTER(뉴스레터), SCIENCE(과학/환경), REAL_ESTATE(부동산/세금),
+                SPORTS(스포츠/엔터테인먼트), TRAVEL(여행/지역), FOOD(음식/레시피),
+                RELIGION(종교/철학), CORPORATE(기업 보도자료/IR), REVIEW(제품 리뷰/비교),
+                MARKETING(마케팅 콘텐츠), PETITION(청원/캠페인), POLITICS(정치/선거)
+
+                각 항목은 독립적으로 0~100점으로 평가하세요. 카테고리별 가중 합산은 서버에서 처리합니다.
 
                 평가 기준:
                 - DOMAIN(0~100): 도메인 신뢰도 - 알려진 주요 언론사, .gov/.edu/.ac.kr 등 공신력 있는 도메인일수록 높게

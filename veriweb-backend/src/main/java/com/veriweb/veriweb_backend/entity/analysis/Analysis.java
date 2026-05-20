@@ -33,6 +33,9 @@ public class Analysis {
     @Column(nullable = false, columnDefinition = "TEXT")
     private String summary;
 
+    @Column(length = 50)
+    private String contentCategory;
+
     @Column
     private LocalDateTime publishedAt;
 
@@ -46,11 +49,13 @@ public class Analysis {
     private List<RecommendedArticle> recommendedArticles = new ArrayList<>();
 
     @Builder
-    public Analysis(String url, int totalScore, Grade grade, String summary, LocalDateTime publishedAt) {
+    public Analysis(String url, int totalScore, Grade grade, String summary,
+                    String contentCategory, LocalDateTime publishedAt) {
         this.url = url;
         this.totalScore = totalScore;
         this.grade = grade;
         this.summary = summary;
+        this.contentCategory = contentCategory;
         this.publishedAt = publishedAt;
         this.createdAt = LocalDateTime.now();
     }

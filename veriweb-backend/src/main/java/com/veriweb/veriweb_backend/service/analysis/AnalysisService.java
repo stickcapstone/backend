@@ -8,6 +8,7 @@ import com.veriweb.veriweb_backend.dto.analysis.CrawledContent;
 import com.veriweb.veriweb_backend.dto.analysis.NewsArticle;
 import com.veriweb.veriweb_backend.entity.analysis.Analysis;
 import com.veriweb.veriweb_backend.entity.analysis.AnalysisScore;
+import com.veriweb.veriweb_backend.entity.analysis.ContentCategory;
 import com.veriweb.veriweb_backend.entity.analysis.Grade;
 import com.veriweb.veriweb_backend.entity.analysis.RecommendedArticle;
 import com.veriweb.veriweb_backend.entity.analysis.ScoreCategory;
@@ -68,43 +69,57 @@ public class AnalysisService {
         // 2. Claude API 분석
         ClaudeAnalysisResult result = claudeApiClient.analyze(content, url);
 
-        // 3. 카테고리별 점수 수집 및 가중 합산으로 총점 계산
-        // 총점 = Σ(항목 점수(0~100) × 가중치%) / 100
-        int totalScore = 0;
+        // 3. 항목별 원점수(0~100) 수집
         record ScoreEntry(int rawScore, String reason) {}
         java.util.Map<ScoreCategory, ScoreEntry> entries = new java.util.EnumMap<>(ScoreCategory.class);
+        java.util.Map<ScoreCategory, Integer> rawScores = new java.util.EnumMap<>(ScoreCategory.class);
 
-        for (ScoreCategory category : ScoreCategory.values()) {
+        for (ScoreCategory sc : ScoreCategory.values()) {
             ClaudeAnalysisResult.ScoreItem item = result.scores() != null
-                    ? result.scores().get(category.name()) : null;
+                    ? result.scores().get(sc.name()) : null;
             int rawScore = (item != null) ? Math.min(Math.max(item.score(), 0), 100) : 0;
             String reason = (item != null && item.reason() != null) ? item.reason() : "분석 불가";
-            entries.put(category, new ScoreEntry(rawScore, reason));
-            totalScore += rawScore * category.getWeight() / 100;
+            entries.put(sc, new ScoreEntry(rawScore, reason));
+            rawScores.put(sc, rawScore);
         }
 
-        // 4. Analysis 엔티티 구성
+        // 4. 콘텐츠 카테고리별 가중치로 총점 계산 (카테고리별 상한 포함)
+        ContentCategory contentCategory = ContentCategory.fromString(result.category());
+        int totalScore = contentCategory.calculateTotalScore(rawScores);
+
+        // 5. NewsAPI 추천 기사 수집
+        List<NewsArticle> newsArticles = newsApiClient.searchRelatedArticles(content.title(), content.domain());
+
+        // 6. 수집 기사 부족 시 감점 (0개: -20점, 1~4개: -10점)
+        int articleCount = newsArticles.size();
+        if (articleCount == 0) {
+            totalScore = Math.max(0, totalScore - 20);
+        } else if (articleCount < 5) {
+            totalScore = Math.max(0, totalScore - 10);
+        }
+
+        // 7. Analysis 엔티티 구성
         Analysis analysis = Analysis.builder()
                 .url(url)
                 .totalScore(totalScore)
                 .grade(Grade.from(totalScore))
                 .summary(result.summary())
+                .contentCategory(contentCategory.name())
                 .publishedAt(parseDateTime(result.publishedAt()))
                 .build();
 
-        // 5. 카테고리별 점수 추가
-        for (ScoreCategory category : ScoreCategory.values()) {
-            ScoreEntry entry = entries.get(category);
+        // 8. 항목별 점수 추가
+        for (ScoreCategory sc : ScoreCategory.values()) {
+            ScoreEntry entry = entries.get(sc);
             analysis.getScores().add(AnalysisScore.builder()
                     .analysis(analysis)
-                    .category(category)
+                    .category(sc)
                     .score(entry.rawScore())
                     .reason(entry.reason())
                     .build());
         }
 
-        // 6. NewsAPI 추천 기사 추가 (실패해도 분석 결과는 저장)
-        List<NewsArticle> newsArticles = newsApiClient.searchRelatedArticles(content.title(), content.domain());
+        // 9. 추천 기사 추가 (상위 15개)
         newsArticles.stream().limit(15).forEach(article -> {
             LocalDateTime publishedAt = parseDateTime(article.publishedAt());
             RecommendedArticle rec = RecommendedArticle.builder()

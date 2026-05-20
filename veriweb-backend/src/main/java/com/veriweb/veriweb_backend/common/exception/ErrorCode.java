@@ -25,6 +25,9 @@ public enum ErrorCode {
     MEDIA_ANALYSIS_FAILED(HttpStatus.UNPROCESSABLE_ENTITY, "미디어 분석에 실패했습니다."),
     HIVE_API_KEY_MISSING(HttpStatus.INTERNAL_SERVER_ERROR, "Hive API 키가 설정되지 않았습니다."),
 
+    // Rate Limit
+    RATE_LIMIT_EXCEEDED(HttpStatus.TOO_MANY_REQUESTS, "요청이 너무 많습니다. 잠시 후 다시 시도해주세요."),
+
     // Common
     INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "서버 내부 오류가 발생했습니다.");
 

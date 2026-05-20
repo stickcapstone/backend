@@ -81,12 +81,20 @@ public class MediaAnalysisService {
         );
     }
 
+    private static final java.util.Set<String> IMAGE_EXTENSIONS =
+            java.util.Set.of("jpg", "jpeg", "png", "gif", "webp", "bmp", "tiff", "tif");
+
+    private static final java.util.Set<String> VIDEO_EXTENSIONS =
+            java.util.Set.of("mp4", "mov", "avi", "mkv", "webm", "flv", "wmv", "m4v");
+
     private void validateImageFile(MultipartFile file) {
         if (file == null || file.isEmpty()) {
             throw new VeriWebException(ErrorCode.MEDIA_FILE_REQUIRED);
         }
         String contentType = file.getContentType();
-        if (contentType == null || !contentType.startsWith("image/")) {
+        boolean validType = contentType != null && contentType.startsWith("image/");
+        boolean validExt = hasExtension(file.getOriginalFilename(), IMAGE_EXTENSIONS);
+        if (!validType && !validExt) {
             throw new VeriWebException(ErrorCode.UNSUPPORTED_FILE_TYPE);
         }
     }
@@ -96,8 +104,17 @@ public class MediaAnalysisService {
             throw new VeriWebException(ErrorCode.MEDIA_FILE_REQUIRED);
         }
         String contentType = file.getContentType();
-        if (contentType == null || !contentType.startsWith("video/")) {
+        boolean validType = contentType != null && contentType.startsWith("video/");
+        boolean validExt = hasExtension(file.getOriginalFilename(), VIDEO_EXTENSIONS);
+        if (!validType && !validExt) {
             throw new VeriWebException(ErrorCode.UNSUPPORTED_FILE_TYPE);
         }
+    }
+
+    private boolean hasExtension(String filename, java.util.Set<String> allowed) {
+        if (filename == null) return false;
+        int dot = filename.lastIndexOf('.');
+        if (dot < 0) return false;
+        return allowed.contains(filename.substring(dot + 1).toLowerCase());
     }
 }

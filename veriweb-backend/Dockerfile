@@ -7,7 +7,7 @@ COPY build.gradle .
 COPY settings.gradle .
 COPY src src
 
-RUN chmod +x gradlew && ./gradlew bootJar -x test --no-daemon
+RUN chmod +x gradlew && GRADLE_OPTS="-Xmx256m -Xms64m" ./gradlew bootJar -x test --no-daemon --max-workers=1
 
 FROM eclipse-temurin:17-jre-alpine
 WORKDIR /app

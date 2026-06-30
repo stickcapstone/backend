@@ -8,5 +8,6 @@ public record CrawledContent(
         String bodyText,
         List<String> externalLinks,
         String publishedAt,
-        String domain
+        String domain,
+        String thumbnailUrl
 ) {}

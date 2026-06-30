@@ -12,8 +12,12 @@ import com.veriweb.veriweb_backend.entity.analysis.ContentCategory;
 import com.veriweb.veriweb_backend.entity.analysis.Grade;
 import com.veriweb.veriweb_backend.entity.analysis.RecommendedArticle;
 import com.veriweb.veriweb_backend.entity.analysis.ScoreCategory;
+import com.veriweb.veriweb_backend.entity.feed.ArticleCategory;
+import com.veriweb.veriweb_backend.entity.feed.FeedArticle;
 import com.veriweb.veriweb_backend.repository.analysis.AnalysisRepository;
+import com.veriweb.veriweb_backend.repository.feed.FeedArticleRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,11 +27,15 @@ import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.util.List;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class AnalysisService {
 
+    private static final int FEED_MIN_SCORE = 60;
+
     private final AnalysisRepository analysisRepository;
+    private final FeedArticleRepository feedArticleRepository;
     private final CrawlerService crawlerService;
     private final ClaudeApiClient claudeApiClient;
     private final NewsApiClient newsApiClient;
@@ -90,12 +98,12 @@ public class AnalysisService {
         // 5. NewsAPI 추천 기사 수집
         List<NewsArticle> newsArticles = newsApiClient.searchRelatedArticles(content.title(), content.domain());
 
-        // 6. 수집 기사 부족 시 감점 (0개: -20점, 1~4개: -10점)
+        // 6. 수집 기사 부족 시 감점 (0개: -10점, 1~4개: -5점)
         int articleCount = newsArticles.size();
         if (articleCount == 0) {
-            totalScore = Math.max(0, totalScore - 20);
-        } else if (articleCount < 5) {
             totalScore = Math.max(0, totalScore - 10);
+        } else if (articleCount < 5) {
+            totalScore = Math.max(0, totalScore - 5);
         }
 
         // 7. Analysis 엔티티 구성
@@ -132,7 +140,46 @@ public class AnalysisService {
             analysis.getRecommendedArticles().add(rec);
         });
 
-        return analysisRepository.save(analysis);
+        Analysis saved = analysisRepository.save(analysis);
+        saveFeedArticleIfEligible(saved, content);
+        return saved;
+    }
+
+    private void saveFeedArticleIfEligible(Analysis analysis, CrawledContent content) {
+        if (analysis.getTotalScore() < FEED_MIN_SCORE) return;
+        if (feedArticleRepository.existsByUrl(analysis.getUrl())) return;
+
+        try {
+            ArticleCategory articleCategory = mapToArticleCategory(
+                    ContentCategory.fromString(analysis.getContentCategory()));
+            LocalDateTime publishedAt = analysis.getPublishedAt() != null
+                    ? analysis.getPublishedAt() : analysis.getCreatedAt();
+
+            FeedArticle feedArticle = FeedArticle.builder()
+                    .title(content.title())
+                    .url(analysis.getUrl())
+                    .source(content.domain())
+                    .thumbnailUrl(content.thumbnailUrl())
+                    .category(articleCategory)
+                    .trustScore(analysis.getTotalScore())
+                    .publishedAt(publishedAt)
+                    .build();
+
+            feedArticleRepository.save(feedArticle);
+            log.info("피드 기사 자동 저장: score={}, url={}", analysis.getTotalScore(), analysis.getUrl());
+        } catch (Exception e) {
+            log.warn("피드 기사 저장 실패 (무시됨): {}", e.getMessage());
+        }
+    }
+
+    private static ArticleCategory mapToArticleCategory(ContentCategory category) {
+        return switch (category) {
+            case POLITICS, GOVERNMENT, LEGAL, PETITION, COMMUNITY, SNS,
+                 RELIGION, NEWS, NEWSLETTER, FACTCHECK, SPORTS, TRAVEL, FOOD, MARKETING -> ArticleCategory.POLITICS;
+            case FINANCE, REAL_ESTATE, CORPORATE, STATISTICS -> ArticleCategory.ECONOMY;
+            case TECH_BLOG, SCIENCE, WIKI, EDUCATION, REVIEW, ACADEMIC_PAPER -> ArticleCategory.IT;
+            case HEALTH -> ArticleCategory.HEALTH;
+        };
     }
 
     private LocalDateTime parseDateTime(String dateStr) {

@@ -30,8 +30,9 @@ public class CrawlerService {
             List<String> externalLinks = extractExternalLinks(doc, url);
             String publishedAt = extractPublishedAt(doc);
             String domain = new URL(url).getHost();
+            String thumbnailUrl = extractThumbnailUrl(doc);
 
-            return new CrawledContent(title, author, bodyText, externalLinks, publishedAt, domain);
+            return new CrawledContent(title, author, bodyText, externalLinks, publishedAt, domain, thumbnailUrl);
         } catch (VeriWebException e) {
             throw e;
         } catch (Exception e) {
@@ -80,6 +81,14 @@ public class CrawlerService {
         } catch (MalformedURLException e) {
             return List.of();
         }
+    }
+
+    private String extractThumbnailUrl(Document doc) {
+        Element og = doc.selectFirst("meta[property=og:image]");
+        if (og != null && !og.attr("content").isBlank()) {
+            return og.attr("content");
+        }
+        return null;
     }
 
     private String extractPublishedAt(Document doc) {

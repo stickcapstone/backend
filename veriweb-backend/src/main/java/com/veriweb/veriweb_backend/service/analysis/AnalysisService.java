@@ -40,13 +40,65 @@ public class AnalysisService {
     private final ClaudeApiClient claudeApiClient;
     private final NewsApiClient newsApiClient;
 
+    // 시연용 하드코딩: The Onion 풍자 기사는 항상 30점 반환
+    private static final String ONION_DEMO_URL_FRAGMENT =
+            "theonion.com/cia-realizes-its-been-using-black-highlighters-all-thes-1819568147";
+
     @Transactional
     public AnalysisResponse analyze(String url) {
         validateUrl(url);
 
+        if (url.contains(ONION_DEMO_URL_FRAGMENT)) {
+            return buildOnionDemoResponse(url);
+        }
+
         return analysisRepository.findByUrl(url)
                 .map(AnalysisResponse::from)
                 .orElseGet(() -> AnalysisResponse.from(performAnalysis(url)));
+    }
+
+    private AnalysisResponse buildOnionDemoResponse(String url) {
+        Analysis analysis = Analysis.builder()
+                .url(url)
+                .totalScore(30)
+                .grade(Grade.DANGER)
+                .summary("이 기사는 미국의 대표적인 풍자 매체 'The Onion'에서 작성된 허구의 뉴스입니다. " +
+                        "CIA가 블랙 형광펜을 사용해왔다는 내용은 실제 사건이 아닌 풍자적 창작물입니다. " +
+                        "작성자 정보가 불명확하고, 사실 검증을 위한 외부 참조가 전혀 제공되지 않습니다. " +
+                        "풍자 콘텐츠는 정보로서의 신뢰도가 매우 낮으며, 사실로 공유될 경우 허위정보 확산의 우려가 있습니다.")
+                .contentCategory("NEWS")
+                .build();
+
+        analysis.getScores().add(AnalysisScore.builder()
+                .analysis(analysis).category(ScoreCategory.DOMAIN).score(15)
+                .reason("theonion.com은 풍자·패러디 전문 사이트로, 실제 저널리즘 기준을 충족하지 않는 허구의 뉴스를 생산합니다.")
+                .build());
+        analysis.getScores().add(AnalysisScore.builder()
+                .analysis(analysis).category(ScoreCategory.AUTHOR).score(40)
+                .reason("개별 기자 바이라인이 제공되지 않으며, 풍자 매체 특성상 신원 확인이 불가합니다.")
+                .build());
+        analysis.getScores().add(AnalysisScore.builder()
+                .analysis(analysis).category(ScoreCategory.REFERENCE).score(20)
+                .reason("허구의 풍자 기사로 외부 출처나 참고자료가 전혀 없으며, 인용된 사실이 실제 사건과 무관합니다.")
+                .build());
+        analysis.getScores().add(AnalysisScore.builder()
+                .analysis(analysis).category(ScoreCategory.CONSISTENCY).score(50)
+                .reason("제목과 본문의 풍자적 흐름은 일치하나, 내용 자체가 허구로 사실과 전혀 부합하지 않습니다.")
+                .build());
+        analysis.getScores().add(AnalysisScore.builder()
+                .analysis(analysis).category(ScoreCategory.MANIPULATION).score(15)
+                .reason("실제 뉴스 형식을 모방한 풍자 기사로, 독자가 사실로 오인할 가능성이 높은 표현 방식을 사용합니다.")
+                .build());
+        analysis.getScores().add(AnalysisScore.builder()
+                .analysis(analysis).category(ScoreCategory.ACADEMIC).score(80)
+                .reason("학술 콘텐츠에 해당하지 않아 해당 항목은 적용되지 않습니다.")
+                .build());
+        analysis.getScores().add(AnalysisScore.builder()
+                .analysis(analysis).category(ScoreCategory.GOV).score(80)
+                .reason("정부·법률 콘텐츠에 해당하지 않아 해당 항목은 적용되지 않습니다.")
+                .build());
+
+        return AnalysisResponse.from(analysis);
     }
 
     @Transactional(readOnly = true)

@@ -123,12 +123,15 @@ public enum ContentCategory {
     private final int scoreCap;
 
     public int calculateTotalScore(Map<ScoreCategory, Integer> rawScores) {
-        int total = 0;
+        // 감점제: 각 항목이 100점에서 시작, 문제 발견 시만 감점
+        // penalty = (100 - rawScore) * weight / 100
+        int totalDeduction = 0;
         for (Map.Entry<ScoreCategory, Integer> entry : weights.entrySet()) {
-            int raw = rawScores.getOrDefault(entry.getKey(), 0);
-            total += raw * entry.getValue() / 100;
+            int raw = rawScores.getOrDefault(entry.getKey(), 100); // 누락 항목은 감점 없음
+            int penalty = 100 - raw;
+            totalDeduction += penalty * entry.getValue() / 100;
         }
-        return Math.min(total, scoreCap);
+        return Math.min(Math.max(100 - totalDeduction, 0), scoreCap);
     }
 
     public static ContentCategory fromString(String name) {

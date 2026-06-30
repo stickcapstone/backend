@@ -23,7 +23,8 @@ public class ImageAnalysisResponse {
         if (aiGenerated) {
             return confidence >= 70 ? "AI 생성으로 판단됨" : "AI 생성 가능성 있음";
         } else {
-            return confidence >= 70 ? "실제 이미지로 판단됨" : "판단 불명확";
+            // confidence = AI 생성 확률이므로, 실제 이미지 신뢰도 = 100 - confidence
+            return (100 - confidence) >= 70 ? "실제 이미지로 판단됨" : "판단 불명확";
         }
     }
 }

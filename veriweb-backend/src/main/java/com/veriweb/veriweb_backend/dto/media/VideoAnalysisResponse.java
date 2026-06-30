@@ -28,7 +28,7 @@ public class VideoAnalysisResponse {
         if (aiGenerated) {
             return confidence >= 70 ? "AI 생성 영상으로 판단됨" : "AI 생성 가능성 있음";
         } else {
-            return confidence >= 70 ? "실제 영상으로 판단됨" : "판단 불명확";
+            return (100 - confidence) >= 70 ? "실제 영상으로 판단됨" : "판단 불명확";
         }
     }
 }

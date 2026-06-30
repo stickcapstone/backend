@@ -58,6 +58,9 @@ public class AnalysisService {
     }
 
     private AnalysisResponse buildOnionDemoResponse(String url) {
+        // 기존 캐시가 있으면 삭제 후 재생성 (점수가 다를 수 있으므로)
+        analysisRepository.findByUrl(url).ifPresent(analysisRepository::delete);
+
         Analysis analysis = Analysis.builder()
                 .url(url)
                 .totalScore(30)
@@ -98,7 +101,7 @@ public class AnalysisService {
                 .reason("정부·법률 콘텐츠에 해당하지 않아 해당 항목은 적용되지 않습니다.")
                 .build());
 
-        return AnalysisResponse.from(analysis);
+        return AnalysisResponse.from(analysisRepository.save(analysis));
     }
 
     @Transactional(readOnly = true)

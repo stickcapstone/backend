@@ -22,9 +22,9 @@ import java.util.List;
 public class HiveApiClient {
 
     private static final String HIVE_BASE_URL = "https://api.thehive.ai";
-    private static final String SYNC_ENDPOINT = "/api/v2/task/sync";
+    private static final String SYNC_ENDPOINT = "/api/v3/hive/ai-generated-and-deepfake-content-detection";
     private static final String AI_GENERATED_CLASS = "ai_generated";
-    private static final double AI_THRESHOLD = 0.5;
+    private static final double AI_THRESHOLD = 0.9;
 
     private final RestClient restClient;
     private final ObjectMapper objectMapper;
@@ -44,12 +44,12 @@ public class HiveApiClient {
     public record VideoFrameResult(double aiScore) {}
 
     public ImageResult analyzeImage(MultipartFile file) {
-        String responseBody = callHiveApi(file, "image");
+        String responseBody = callHiveApi(file, "media");
         return parseImageResponse(responseBody);
     }
 
     public List<VideoFrameResult> analyzeVideo(MultipartFile file) {
-        String responseBody = callHiveApi(file, "video");
+        String responseBody = callHiveApi(file, "media");
         return parseVideoResponse(responseBody);
     }
 
@@ -72,7 +72,7 @@ public class HiveApiClient {
 
             return restClient.post()
                     .uri(SYNC_ENDPOINT)
-                    .header("Authorization", "token " + apiKey)
+                    .header("Authorization", "Bearer " + apiKey)
                     .contentType(MediaType.MULTIPART_FORM_DATA)
                     .body(body)
                     .retrieve()
@@ -88,10 +88,7 @@ public class HiveApiClient {
     private ImageResult parseImageResponse(String responseBody) {
         try {
             JsonNode root = objectMapper.readTree(responseBody);
-            JsonNode classes = root.path("status").get(0)
-                    .path("response").path("output").get(0)
-                    .path("classes");
-
+            JsonNode classes = root.path("output").get(0).path("classes");
             double aiScore = extractClassScore(classes, AI_GENERATED_CLASS);
             return new ImageResult(aiScore);
         } catch (Exception e) {
@@ -103,9 +100,7 @@ public class HiveApiClient {
     private List<VideoFrameResult> parseVideoResponse(String responseBody) {
         try {
             JsonNode root = objectMapper.readTree(responseBody);
-            JsonNode outputs = root.path("status").get(0)
-                    .path("response").path("output");
-
+            JsonNode outputs = root.path("output");
             List<VideoFrameResult> frames = new ArrayList<>();
             for (JsonNode output : outputs) {
                 JsonNode classes = output.path("classes");
@@ -122,7 +117,7 @@ public class HiveApiClient {
     private double extractClassScore(JsonNode classes, String targetClass) {
         for (JsonNode cls : classes) {
             if (targetClass.equals(cls.path("class").asText())) {
-                return cls.path("score").asDouble(0.0);
+                return cls.path("value").asDouble(0.0);
             }
         }
         return 0.0;

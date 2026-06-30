@@ -59,7 +59,7 @@ public class MediaAnalysisService {
 
         int totalFrames = frames.size();
         int aiFrames = (int) frames.stream()
-                .filter(f -> f.aiScore() >= 0.5)
+                .filter(f -> f.aiScore() >= 0.9)
                 .count();
 
         double avgAiScore = frames.stream()

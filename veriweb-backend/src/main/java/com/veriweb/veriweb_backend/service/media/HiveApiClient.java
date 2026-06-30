@@ -24,7 +24,6 @@ public class HiveApiClient {
     private static final String HIVE_BASE_URL = "https://api.thehive.ai";
     private static final String SYNC_ENDPOINT = "/api/v3/hive/ai-generated-and-deepfake-content-detection";
     private static final String AI_GENERATED_CLASS = "ai_generated";
-    private static final double AI_THRESHOLD = 0.9;
 
     private final RestClient restClient;
     private final ObjectMapper objectMapper;
